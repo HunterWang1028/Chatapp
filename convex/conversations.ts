@@ -99,8 +99,32 @@ const getMyConversations = query({
   },
 });
 
+const kickUser = mutation({
+  args: {
+    conversationId: v.id("conversations"),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const identity = ctx.auth.getUserIdentity();
+    if (!identity) throw new ConvexError("Unauthorized");
+
+    const conversation = await ctx.db
+      .query("conversations")
+      .filter((q) => q.eq(q.field("_id"), args.conversationId))
+      .unique();
+
+    if (!conversation) throw new ConvexError("Conversation not found");
+
+    await ctx.db.patch(args.conversationId, {
+      participants: conversation.participants.filter(
+        (id) => id !== args.userId
+      ),
+    });
+  },
+});
+
 const generateUploadUrl = mutation(async (ctx) => {
   return await ctx.storage.generateUploadUrl();
 });
 
-export { createConversation, generateUploadUrl, getMyConversations };
+export { createConversation, generateUploadUrl, getMyConversations, kickUser };

@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { argv } from "process";
+import { api } from "./_generated/api";
 
 const sendTextMessage = mutation({
   args: {
@@ -38,7 +39,27 @@ const sendTextMessage = mutation({
       messageType: "text",
     });
 
-    // TODO add @gpt check later
+    if (args.content.startsWith("@gpt")) {
+      await ctx.scheduler.runAfter(0, api.openai.chat, {
+        messageBody: args.content,
+        conversation: args.conversation,
+      });
+    }
+  },
+});
+
+const sendChatGPtMessage = mutation({
+  args: {
+    content: v.string(),
+    conversation: v.id("conversations"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("messages", {
+      content: args.content,
+      sender: "ChatGPT",
+      messageType: "text",
+      conversation: args.conversation,
+    });
   },
 });
 
@@ -61,6 +82,9 @@ const getMessages = query({
 
     const messagesWithSender = await Promise.all(
       messages.map(async (message) => {
+        if (message.sender === "ChatGPT") {
+          return { ...message, sender: { name: "ChatGpt", image: "/gpt.jpg" } };
+        }
         let sender;
         //check if sender profile is in cache
         if (userProfileCache.has(message.sender)) {
@@ -153,4 +177,10 @@ const sendVideo = mutation({
 //   },
 // });
 
-export { sendTextMessage, getMessages, sendImage, sendVideo };
+export {
+  sendTextMessage,
+  getMessages,
+  sendImage,
+  sendVideo,
+  sendChatGPtMessage,
+};

@@ -12,7 +12,7 @@ import { useEffect } from "react";
 import Conversation from "./Conversation";
 
 const LeftPanel = () => {
-  const { isAuthenticated } = useConvexAuth();
+  const { isAuthenticated, isLoading } = useConvexAuth();
   const conversations = useQuery(
     api.conversations.getMyConversations,
     isAuthenticated ? undefined : "skip"
@@ -32,6 +32,8 @@ const LeftPanel = () => {
       setSelectedConversation(null);
     }
   }, [conversations, selectedConversation, setSelectedConversation]);
+
+  if (isLoading) return null;
 
   return (
     <div className="w-1/4 border-gray-600 border-r">
